@@ -8,18 +8,30 @@
 
 #import "ViewController.h"
 #define DEGREES_TO_RADOANS(x) (M_PI * (x) / 180.0)
+NSString *const kRotateAnimationKey = @"RotateAnimation";
+NSString *const kScaleAnimationKey = @"ScaleAnimation";
 
 @interface ViewController ()
 
 @property (weak, nonatomic) IBOutlet UIView *refreshView;
 
+@property (strong, nonatomic) CAAnimation *rotateAnimation;
+
+@property (strong, nonatomic) CAAnimation *scaleAnimation;
+
 @end
 
 @implementation ViewController
 
+- (void)dealloc {
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
 - (void)viewDidLoad {
 	[super viewDidLoad];
 	
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationDidEnterBackgroundNotification) name:UIApplicationDidEnterBackgroundNotification object:nil];
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationWillEnterForegroundNotification) name:UIApplicationWillEnterForegroundNotification object:nil];
 	CAShapeLayer *redLayer = [self colorLayerWithStartAngle:-40 endAngle:40 color:[UIColor redColor]];
 	[_refreshView.layer addSublayer:redLayer];
 	
@@ -29,12 +41,12 @@
 	CAShapeLayer *yellowLayer = [self colorLayerWithStartAngle:200 endAngle:280 color:[UIColor yellowColor]];
 	[_refreshView.layer addSublayer:yellowLayer];
 	
-	CABasicAnimation *circleAnimation = [CABasicAnimation animationWithKeyPath:@"transform.rotation"];
-	circleAnimation.duration = 2.5f;
-	circleAnimation.toValue = @(M_PI * 2);
-	circleAnimation.removedOnCompletion = NO;
-	circleAnimation.fillMode = kCAFillModeForwards;
-	circleAnimation.repeatCount = HUGE_VALF;
+	CABasicAnimation *rotateAnimation = [CABasicAnimation animationWithKeyPath:@"transform.rotation"];
+	rotateAnimation.duration = 2.5f;
+	rotateAnimation.toValue = @(M_PI * 2);
+	rotateAnimation.removedOnCompletion = NO;
+	rotateAnimation.fillMode = kCAFillModeForwards;
+	rotateAnimation.repeatCount = HUGE_VALF;
 	
 	CABasicAnimation *scaleAnimation = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
 	scaleAnimation.fromValue = @(0.5);
@@ -43,9 +55,8 @@
 	scaleAnimation.repeatCount = HUGE_VALF;
 	scaleAnimation.autoreverses = YES;
 	
-	[_refreshView.layer addAnimation:circleAnimation forKey:nil];
-	[_refreshView.layer addAnimation:scaleAnimation forKey:nil];
-	
+	[_refreshView.layer addAnimation:rotateAnimation forKey:kRotateAnimationKey];
+	[_refreshView.layer addAnimation:scaleAnimation forKey:kScaleAnimationKey];
 }
 
 - (CAShapeLayer *)colorLayerWithStartAngle: (int)startAngle
@@ -65,6 +76,17 @@
 	shapeLayer.strokeColor = color.CGColor;
 	shapeLayer.lineCap = kCALineCapRound;
 	return shapeLayer;
+}
+
+
+- (void)applicationDidEnterBackgroundNotification {
+	_rotateAnimation = [_refreshView.layer animationForKey:kRotateAnimationKey];
+	_scaleAnimation = [_refreshView.layer animationForKey:kScaleAnimationKey];
+}
+
+- (void)applicationWillEnterForegroundNotification {
+	[_refreshView.layer addAnimation:_rotateAnimation forKey:kRotateAnimationKey];
+	[_refreshView.layer addAnimation:_scaleAnimation forKey:kScaleAnimationKey];
 }
 
 @end
